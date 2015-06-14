@@ -1,21 +1,22 @@
 var mongoose = require('mongoose');
 
 var QuestionnaireSchema = new mongoose.Schema({
-    name: String,
-    retired: Boolean(false),
-    archived: Boolean(false),
-    submissions: [{type: mongoose.Schema.Types.ObjectId, ref: 'Submission'}],
-    questions: [{q: String}]
+  name: String,
+  questionAnswerPairs: [{question: {
+    type: mongoose.Schema.Types.ObjectId, ref: 'Question'},
+    answer: String
+  }],
+  candidate: {type: mongoose.Schema.Types.ObjectId, ref: 'Candidate'},
+  inProgress: {type: Boolean(false)},
+  completed: {type: Boolean(false)}
 });
 
-QuestionnaireSchema.methods.retire = function(callback){
-    this.retired = true;
-    this.save(callback);
+QuestionnaireSchema.methods.start = function(callback){
+
 };
 
-QuestionnaireSchema.methods.archive = function(callback){
-  //todo check all submissions associated with this questionnaire and set archived to true if all dubmissions have been marked completed
-  //should be an asynchronous operation as it would get expensive at scale
+QuestionnaireSchema.methods.complete = function(callback){
+
 };
 
 mongoose.model('Questionnaire', QuestionnaireSchema);

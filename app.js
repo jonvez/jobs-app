@@ -8,7 +8,7 @@ var mongoose = require('mongoose');
 
 require('./models/Candidate');
 require('./models/Questionnaire');
-require('./models/Submission');
+require('./models/Question');
 
 mongoose.connect('mongodb://localhost/jobs-app');
 

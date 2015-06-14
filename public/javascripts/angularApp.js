@@ -1,79 +1,137 @@
 var app = angular.module('jobsAppClient', ['ui.router']);
 
 app.controller('MainCtrl',[
-    '$scope',
-    function($scope){
-    }]);
+  '$scope',
+  function($scope) { }
+]);
 
-app.controller('SubmissionCtrl',[
-    '$scope',
-    '$stateParams',
-    'questionnaires',
-    function($scope, $stateParams, questionnaires){
-        $scope.questionnaires = questionnaires;
-        $scope.saveSubmission = function(){
+app.controller('QuestionsCtrl',[
+  '$scope',
+  'questionSvc',
+  function($scope, questionSvc) {
+    console.log('QuestionsCtrl')
+    $scope.questions = questionSvc.questions;
+  }
+]);
 
-        };
-    }]);
+app.controller('QuestionCtrl',[
+  '$scope',
+  'questionSvc',
+  'question',
+  function($scope, questionSvc, question) {
+    console.log('QuestionCtrl')
+    if(question){
+      console.log(question);
+      $scope.question = question;
+    }
+    console.log('after if');
+    $scope.saveQuestion = function(){
+      if(!$scope.question.q || $scope.question.q === '') { return; }
+      questionSvc.save($scope.question);
+    };
+  }
+]);
 
-app.controller('QuestionnaireCtrl',[
-    '$scope',
-    '$stateParams',
-    'questionnaires',
-    function($scope, $stateParams, questionnaires){
-        $scope.questionnaires = questionnaires;
-        $scope.createQuestionnaire = function(){
-            if(!$scope.questions || $scope.questions === []) { return; }
-            $scope.questionnaires.push({
-                questions: $scope.questions,
+//app.controller('QuestionnaireCtrl',[
+//  '$scope',
+//  'questionnaireSvc',
+//  'questionnaire',
+//  function($scope, questionnaireSvc, questionnaire){
+//    $scope.questionnaires = questionnaireSvc.questionnaires;
+//    $scope.questionnaire = questionnaire;
+//
+//    //$scope.createQuestionnaire = function(){
+//    //    if(!$scope.questions || $scope.questions === []) { return; }
+//    //    $scope.questionnaires.push({
+//    //        questions: $scope.questions
+//    //
+//    //
+//    //    });
+//    //
+//    //};
+//    $scope.saveQuestionnaire = function(){
+//      questionnaireSvc.save($scope.questionnaire);
+//    };
+//    //$scope.deleteQuestionnaire = function(questionnaire){
+//    //
+//    //};
+//    //$scope.publishQuestionnaire = function(questionnaire){
+//    //
+//    //};
+//  }]);
 
-
-            });
-
-        };
-        //$scope.saveQuestionnaire = function(questionnaire){
-        //
-        //};
-        //$scope.deleteQuestionnaire = function(questionnaire){
-        //
-        //};
-        //$scope.publishQuestionnaire = function(questionnaire){
-        //
-        //};
-    }]);
-
-app.factory('questionnaires', [function(){
-    var questionnaires = [{
-        name: 'stub',
-        questions: [
-            {question: "What's the coolest problem you've solved that's applicable to the role you'd like to have with FoodLogiQ? Why should we think it's cool, too?", sequence: 1},
-            {question: "Describe the environment that would exist at your dream job. The culture, people, office, tools, etc. - whatever details you think would make it awesome. Don't worry about trying to describe us so we think you think we're your dream employer; we're more interested in you, not us.", sequence: 2},
-            {question: "What design and development assumptions and decisions went into your solution for Step 1?", sequence: 3}
-        ]
-    }];
-    return questionnaires;
+app.factory('questionSvc', ['$http', function($http){
+  var o = { questions: [] };
+  o.getAll = function(){
+    return $http.get('/questions').success(function(data){
+      angular.copy(data, o.questions);
+    });
+  };
+  o.get = function(id){
+    return $http.get('/questions/' + id).then(function(res){
+      return res.data;
+    });
+  };
+  o.save = function(question){
+    if(!question._id || question._id === ''){
+      console.log('create');
+      return $http.post('/questions', question);
+    } else {
+      console.log('update');
+      return $http.put('/questions/' + question._id, question);
+    }
+  };
+  return o;
 }]);
 
-app.config([
-    '$stateProvider',
-    '$urlRouterProvider',
-    function($stateProvider, $urlRouterProvider){
-        $stateProvider.state('home', {
-            url: '/home',
-            templateUrl: '/home.html',
-            controller: 'MainCtrl'
-        });
-        $stateProvider.state('submission', {
-            url: '/submission',
-            templateUrl: '/submission.html',
-            controller: 'SubmissionCtrl'
-        });
-        $stateProvider.state('questionnaire', {
-            url: '/questionnaire',
-            templateUrl: '/questionnaire.html',
-            controller: 'QuestionnaireCtrl'
-        });
+//app.factory('questionnaireSvc', ['$http', function($http){
+//  var o = { questionnaires: [] };
+//  o.getAll = function(){
+//    return $http.get('/questionnaires').success(function(data){
+//      angular.copy(data, o.questionnaires);
+//    });
+//  };
+//  o.get = function(id){
+//    return $http.get('/questionnaires/' + id).then(function(res){
+//      return res.data;
+//    });
+//  };
+//  o.save = function(questionnaire){
+//    return $http.put('/questionnaires/' + questionnaire._id, questionnaire);
+//  };
+//  return o;
+//}]);
 
-        $urlRouterProvider.otherwise('home');
-    }]);
+app.config([
+  '$stateProvider',
+  '$urlRouterProvider',
+  function($stateProvider, $urlRouterProvider){
+    $stateProvider.state('home', {
+      url: '/home',
+      templateUrl: '/home.html',
+      controller: 'MainCtrl'
+    });
+    $stateProvider.state('questions', {
+      url: '/questions',
+      templateUrl: '/questions.html',
+      controller: 'QuestionsCtrl',
+      resolve: {
+        questionsPromise: ['questionSvc', function(questionSvc){
+          return questionSvc.getAll();
+        }]
+      }
+    });
+    $stateProvider.state('question', {
+      url: '/questions/{id}',
+      templateUrl: '/question.html',
+      controller: 'QuestionCtrl',
+      resolve: {
+        question: ['$stateParams', 'questionSvc', function($stateParams, questionSvc){
+          return questionSvc.get($stateParams.id);
+        }]
+      }
+    });
+
+    $urlRouterProvider.otherwise('home');
+}]);
 
