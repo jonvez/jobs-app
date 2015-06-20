@@ -32,6 +32,16 @@ router.param('question', function(req, res, next, id){
   });
 });
 
+router.param('candidate', function(req, res, next, id){
+  var query = Candidate.findById(id);
+  query.exec(function(err, candidate){
+    if(err) { return next(err); }
+    if(!candidate) { return next(new Error('candidate not found')); }
+    req.candidate = candidate;
+    return next();
+  });
+});
+
 router.get('/questionnaires', function(req, res, next) {
   Questionnaire.find(function(err, questionnaires){
     if(err){ return next(err); }
@@ -46,10 +56,20 @@ router.get('/questions', function(req, res, next) {
   });
 });
 
+router.get('/candidates', function(req, res, next) {
+  Candidate.find(function(err, questions){
+    if(err){ return next(err); }
+    res.json(questions);
+  });
+});
+
 router.post('/questionnaires', function(req, res, next){
   var questionnaire = new Questionnaire(req.body);
   questionnaire.save(function(err, questionnaire){
-    if(err) { return next(err); }
+    console.log('--------------------------1');
+    if(err) { console.log(err);
+      return next(err); }
+    console.log('--------------------------2');
     res.json(questionnaire);
   });
 });
@@ -57,6 +77,37 @@ router.post('/questionnaires', function(req, res, next){
 router.post('/questions', function(req, res, next){
   var question = new Question(req.body);
   question.save(function(err, question){
+    if(err) { return next(err); }
+    res.json(question);
+  });
+});
+
+router.post('/candidates', function(req, res, next){
+  var candidate = new Candidate(req.body);
+  candidate.save(function(err, candidate){
+    if(err) { return next(err); }
+    res.json(candidate);
+  });
+});
+
+router.get('/questions/:question', function(req, res){
+  res.json(req.question);
+});
+
+router.get('/questionnaires/:questionnaire', function(req, res){
+  req.questionnaire.populate('candidate questionAnswerPairs questionAnswerPairs.question', function(err, questionnaire){
+    if(err){ return next(err); }
+    res.json(questionnaire);
+  });
+});
+
+router.get('/candidates/:candidate', function(req, res){
+  res.json(req.candidates);
+});
+
+router.put('/questions/:question', function(req, res, next){
+  var question = req.body;
+  Question.findByIdAndUpdate(question._id, question, function(err, question){
     if(err) { return next(err); }
     res.json(question);
   });
@@ -70,40 +121,45 @@ router.put('/questionnaires/:questionnaire', function(req, res, next){
   });
 });
 
-router.put('/questions/:question', function(req, res, next){
-  var question = req.body;
-  Question.findByIdAndUpdate(question._id, question, function(err, question){
+router.put('/candidates/:candidate', function(req, res, next){
+  var candidate = req.body;
+  Candidate.findByIdAndUpdate(candidate._id, candidate, function(err, candidate){
     if(err) { return next(err); }
-    res.json(question);
+    res.json(candidate);
   });
 });
 
-router.get('/questionnaires/:questionnaire', function(req, res){
-  res.json(req.questionnaire);
+router.put('/questionnaires/:questionnaire/respond', function(req, res, next){
+  //todo only allow answers & flags to be changed
+  var questionnaire = req.body;
+  questionnaire.inProgress = true;
+  Questionnaire.findByIdAndUpdate(questionnaire._id, questionnaire, function(err, questionnaire){
+    if(err) { return next(err); }
+    res.json(questionnaire);
+  });
 });
 
-router.get('/questions/:question', function(req, res){
-  res.json(req.question);
+router.put('/questionnaires/:questionnaire/complete', function(req, res, next){
+  //todo only allow answers & flags to be changed
+  var questionnaire = req.body;
+  questionnaire.inProgress = false;
+  questionnaire.completed = true;
+  Questionnaire.findByIdAndUpdate(questionnaire._id, questionnaire, function(err, questionnaire){
+    if(err) { return next(err); }
+    res.json(questionnaire);
+  });
 });
 
-//router.put('/submissions/:submission/complete', function(req, res, next){
-//
-//  submission.save(function(err, submission){
-//    if(err) return next(err);
-//
-//    res.json(submission);
-//  });
-//});
-//
-//router.get('/candidates/:candidate', function(req, res, next, id){
-//  var query = Candidate.findById(id);
-//
-//  query.exec(function(err, candidate){
-//    if(err) { return next(err); }
-//    if(!candidate) { return next(new Error('candidate not found')); }
-//    candidate.populate('submission')
-//    res.json(candidate);
-//  });
-//});
+router.post('/questionnaires/:questionnaire/send', function(req, res, next){
+  var questionnaire = req.questionnaire;
+  transporter.sendMail({
+    from: 'jonvez+jobs=app@gmail.com',
+    to: questionnaire.candidate.email,
+    subject: questionnaire.name,
+    text: 'hello mail!'
+  });
+
+});
+
 
 module.exports = router;

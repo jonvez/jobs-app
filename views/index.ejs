@@ -5,6 +5,7 @@
     <link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
     <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.3.10/angular.min.js"></script>
     <script src="http://cdnjs.cloudflare.com/ajax/libs/angular-ui-router/0.2.10/angular-ui-router.js"></script>
+    <script src="http://vitalets.github.io/checklist-model/checklist-model.js"></script>
     <script src="/javascripts/angularApp.js"></script>
   </head>
 
@@ -22,50 +23,21 @@
       <p>Thank you for visiting the Acme Co. job site!</p>
       <ul>
         <!--<li><a href="#/user/login">Log in</a> to complete or submit a saved questionnaire</li>-->
-        <!--<li><a href="#/user/register">Register</a> to complete and submit a new questionnaire</li>-->
-        <!--<li><a href="#/submission">Shortcut to submission form</a></li>-->
         <li><a href="#/questions">All questions</a></li>
+        <li><a href="#/questionnaires">All questionnaires</a></li>
+        <li><a href="#/questionnaire">Build a questionnaire</a></li>
       </ul>
-      <!--<div class="page-header">-->
-          <!--<h2>Questionnaires</h2>-->
-      <!--</div>-->
-      <!--<div ng-repeat="questionnaire in questionnaires">-->
-          <!--{{questionnaire.name}}-->
-          <!--<a href="#/questionnaires/{{questionnaire._id}}">edit</a> |-->
-          <!--<a href="#/questionnaires/{{questionnaire._id}}/submissions">submissions</a>-->
-      <!--</div>-->
-      <!--<form ng-submit="saveSubmission()">-->
-          <!--<div ng-repeat="question in activeQuestionnaire.questions | orderBy:'sequence'">-->
-              <!--{{question.sequence}}. {{question.question}}-->
-              <!--<div class="form-group">-->
-                  <!--<textarea ng-bind="submission.response[question.sequence]" class="form-control"></textarea>-->
-
-              <!--</div>-->
-          <!--</div>-->
-      <!--</form>-->
     </script>
-
-    <!--<script type="text/ng-template" id="/submission.html">-->
-        <!--<div class="page-header">-->
-            <!--<h1>Questionnaire for {{questionnaire.name}}</h1>-->
-        <!--</div>-->
-        <!--<form ng-submit="saveSubmission()">-->
-            <!--<div ng-repeat="question in questionnaire.questions | orderBy:'sequence'">-->
-                <!--{{question.sequence}}. {{question.question}}-->
-                <!--<div class="form-group">-->
-                    <!--<textarea ng-bind="submission.response[question.sequence]" class="form-control"></textarea>-->
-
-                <!--</div>-->
-            <!--</div>-->
-        <!--</form>-->
-    <!--</script>-->
 
     <script type="text/ng-template" id="/questions.html">
       <h1>All Questions</h1>
+      <div class="path" style="margin-bottom: 30px;">
+        <a href="#/">Home</a>
+      </div>
       <div ng-repeat="question in questions">
         {{question.q}} <a href="#/questions/{{question._id}}">edit</a>
       </div>
-      <form ng-submit="saveQuestion()" style="margin-top: 30px;">
+      <form ng-submit="addQuestion()" style="margin-top: 30px;">
         <div class="form-group">
           <input type="text" class="form-control" placeholder="Question" ng-model="question.q">
         </div>
@@ -75,6 +47,10 @@
 
     <script type="text/ng-template" id="/question.html">
       <h1>Edit Question</h1>
+      <div class="path" style="margin-bottom: 30px;">
+        <a href="#/">Home</a> >
+        <a href="#/questions">All Questions</a>
+      </div>
       <form ng-submit="saveQuestion()" style="margin-top: 30px;">
         <div class="form-group">
           <input type="text" class="form-control" placeholder="Question" ng-model="question.q">
@@ -83,18 +59,71 @@
       </form>
     </script>
 
-    <!--<script type="text/ng-template" id="/submission.html">-->
-      <!--<h1>{{submission.questionnaire.name}}: {{submission.candidate.email}}</h1>-->
-      <!--<form ng-submit="saveSubmission()" style="margin-top: 30px;">-->
-        <!--<div ng-repeat="response in submission.responses">-->
-          <!--Question: {{response.question}}-->
-          <!--<div class="form-group">-->
-            <!--<input type="text" class="form-control" placeholder="Response" ng-model="response.answer">-->
-          <!--</div>-->
+    <script type="text/ng-template" id="/questionnaires.html">
+      <h1>All Questionnaires</h1>
+      <div class="path" style="margin-bottom: 30px;">
+        <a href="#/">Home</a>
+      </div>
+      <div ng-repeat="questionnaire in questionnaires">
+        {{questionnaire.name}}
+        <a href="#/questionnaires/{{questionnaire._id}}">edit</a> |
+        <a href="#/questionnaires/{{questionnaire._id}}/response">respond</a> |
+      </div>
+      <form ng-submit="addQuestionnaire()" style="margin-top: 30px;">
+        <h4>Select one or more from the below questions:</h4>
+        <div ng-repeat="question in questions track by $index">
+          <div class="form-group">
+            <input type="checkbox" class="form-control" checklist-model="selectedQuestions.questions" checklist-value="question">{{question.q}}
+          </div>
+        </div>
+        <!--<h4>Enter the candidate's name:</h4>-->
+        <!--<div class="form-group">-->
+          <!--<input type="text" class="form-control" placeholder="Candidate Name" ng-model="questionnaire.candidate.name">-->
         <!--</div>-->
-        <!--<button type="submit" class="btn btn-primary">Save</button>-->
-      <!--</form>-->
-    <!--</script>-->
+        <!--<h4>Enter the candidate's email address:</h4>-->
+        <!--<div class="form-group">-->
+          <!--<input type="text" class="form-control" placeholder="Candidate Email" ng-model="questionnaire.candidate.email">-->
+        <!--</div>-->
+        <button type="submit" class="btn btn-primary">Add</button>
+      </form>
+    </script>
+
+    <script type="text/ng-template" id="/questionnaire.html">
+      <h1>Build and Send a Questionnaire</h1>
+      <div class="path" style="margin-bottom: 30px;">
+        <a href="#/">Home</a> >
+        <a href="#/questionnaires">All Questionnaires</a>
+      </div>
+      <form ng-submit="saveQuestionnaire()" style="margin-top: 30px;">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Candidate Email" ng-model="questionnaire.candidate.email">
+        </div>
+        <div ng-repeat="question in questions">
+          <input type="checkbox" class="form-control" ng-model="question._id"> {{question.q}}
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-primary" ng-click="sendQuestionnaire()">Send to Candidate</button>
+
+      </form>
+    </script>
+
+    <script type="text/ng-template" id="/response.html">
+      <h1>Complete a Questionnaire</h1>
+      <div class="path" style="margin-bottom: 30px;">
+        <a href="#/">Home</a> >
+      </div>
+      <form ng-submit="saveResponse()" style="margin-top: 30px;">
+        <h4>Hi {{questionnaire.candidate.name}}.  Please answer the following questions:</h4>
+
+        <div ng-repeat="questionAnswerPair in questionnaire.questionAnswerPairs">
+          <p>{{questionAnswerPair.question.q}}</p>
+          <textarea class="form-control" ng-model="questionAnswerPair.answer"></textarea>
+        </div>
+        <br/>
+        <button type="submit" class="btn btn-primary">Save Progress</button>
+        <button type="button" class="btn btn-primary" ng-submit="submitResponse()">Save and Submit</button>
+      </form>
+    </script>
 
   </body>
 
