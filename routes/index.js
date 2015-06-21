@@ -1,9 +1,15 @@
 var express = require('express');
 var mongoose = require('mongoose');
+var passport = require('passport');
+var jwt = require('express-jwt');
+
+//todo externalize
+var auth = jwt({secret: 'SECRET', userProperty: 'payload'});
 
 var Candidate = mongoose.model('Candidate');
 var Question = mongoose.model('Question');
 var Questionnaire = mongoose.model('Questionnaire');
+var User = mongoose.model('User');
 
 var router = express.Router();
 
@@ -42,39 +48,36 @@ router.param('candidate', function(req, res, next, id){
   });
 });
 
-router.get('/questionnaires', function(req, res, next) {
+router.get('/questionnaires', auth, function(req, res, next) {
   Questionnaire.find(function(err, questionnaires){
     if(err){ return next(err); }
     res.json(questionnaires);
   });
 });
 
-router.get('/questions', function(req, res, next) {
+router.get('/questions', auth, function(req, res, next) {
   Question.find(function(err, questions){
     if(err){ return next(err); }
     res.json(questions);
   });
 });
 
-router.get('/candidates', function(req, res, next) {
+router.get('/candidates', auth, function(req, res, next) {
   Candidate.find(function(err, questions){
     if(err){ return next(err); }
     res.json(questions);
   });
 });
 
-router.post('/questionnaires', function(req, res, next){
+router.post('/questionnaires', auth, function(req, res, next){
   var questionnaire = new Questionnaire(req.body);
   questionnaire.save(function(err, questionnaire){
-    console.log('--------------------------1');
-    if(err) { console.log(err);
-      return next(err); }
-    console.log('--------------------------2');
+    if(err) { return next(err); }
     res.json(questionnaire);
   });
 });
 
-router.post('/questions', function(req, res, next){
+router.post('/questions', auth, function(req, res, next){
   var question = new Question(req.body);
   question.save(function(err, question){
     if(err) { return next(err); }
@@ -82,7 +85,7 @@ router.post('/questions', function(req, res, next){
   });
 });
 
-router.post('/candidates', function(req, res, next){
+router.post('/candidates', auth, function(req, res, next){
   var candidate = new Candidate(req.body);
   candidate.save(function(err, candidate){
     if(err) { return next(err); }
@@ -90,22 +93,22 @@ router.post('/candidates', function(req, res, next){
   });
 });
 
-router.get('/questions/:question', function(req, res){
+router.get('/questions/:question', auth, function(req, res){
   res.json(req.question);
 });
 
-router.get('/questionnaires/:questionnaire', function(req, res){
+router.get('/questionnaires/:questionnaire', auth, function(req, res){
   req.questionnaire.populate('candidate questionAnswerPairs questionAnswerPairs.question', function(err, questionnaire){
     if(err){ return next(err); }
     res.json(questionnaire);
   });
 });
 
-router.get('/candidates/:candidate', function(req, res){
+router.get('/candidates/:candidate', auth, function(req, res){
   res.json(req.candidates);
 });
 
-router.put('/questions/:question', function(req, res, next){
+router.put('/questions/:question', auth, function(req, res, next){
   var question = req.body;
   Question.findByIdAndUpdate(question._id, question, function(err, question){
     if(err) { return next(err); }
@@ -113,7 +116,7 @@ router.put('/questions/:question', function(req, res, next){
   });
 });
 
-router.put('/questionnaires/:questionnaire', function(req, res, next){
+router.put('/questionnaires/:questionnaire', auth, function(req, res, next){
   var questionnaire = req.body;
   Questionnaire.findByIdAndUpdate(questionnaire._id, questionnaire, function(err, questionnaire){
     if(err) { return next(err); }
@@ -121,7 +124,7 @@ router.put('/questionnaires/:questionnaire', function(req, res, next){
   });
 });
 
-router.put('/candidates/:candidate', function(req, res, next){
+router.put('/candidates/:candidate', auth, function(req, res, next){
   var candidate = req.body;
   Candidate.findByIdAndUpdate(candidate._id, candidate, function(err, candidate){
     if(err) { return next(err); }
@@ -129,7 +132,7 @@ router.put('/candidates/:candidate', function(req, res, next){
   });
 });
 
-router.put('/questionnaires/:questionnaire/respond', function(req, res, next){
+router.put('/questionnaires/:questionnaire/respond', auth, function(req, res, next){
   //todo only allow answers & flags to be changed
   var questionnaire = req.body;
   questionnaire.inProgress = true;
@@ -139,7 +142,7 @@ router.put('/questionnaires/:questionnaire/respond', function(req, res, next){
   });
 });
 
-router.put('/questionnaires/:questionnaire/complete', function(req, res, next){
+router.put('/questionnaires/:questionnaire/complete', auth, function(req, res, next){
   //todo only allow answers & flags to be changed
   var questionnaire = req.body;
   questionnaire.inProgress = false;
@@ -150,7 +153,7 @@ router.put('/questionnaires/:questionnaire/complete', function(req, res, next){
   });
 });
 
-router.post('/questionnaires/:questionnaire/send', function(req, res, next){
+router.post('/questionnaires/:questionnaire/send', auth, function(req, res, next){
   var questionnaire = req.questionnaire;
   transporter.sendMail({
     from: 'jonvez+jobs=app@gmail.com',
@@ -158,8 +161,34 @@ router.post('/questionnaires/:questionnaire/send', function(req, res, next){
     subject: questionnaire.name,
     text: 'hello mail!'
   });
-
 });
 
+router.post('/register', function(req, res, next){
+  if(!req.body.username || !req.body.password){
+    return res.status(400).json({message: 'Username and password fields are required'});
+  }
+  var user = new User();
+  user.username = req.body.username;
+  user.setPassword(req.body.password);
+  user.save(function(err){
+    if(err){ return next(err); }
+    return res.json({token: user.generateJWT()});
+  });
+});
+
+router.post('/login', function(req, res, next){
+  if(!req.body.username || !req.body.password){
+    return res.status(400).json({message: 'Username and password fields are required'});
+  }
+  passport.authenticate('local', function(err, user, info){
+    if(err){ return next(err); }
+    if(user){
+      return res.json({token: user.generateJWT()});
+    } else {
+      //todo clean up else block
+      return res.status(401).json(info);
+    }
+  })(req, res, next);
+});
 
 module.exports = router;

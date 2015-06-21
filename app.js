@@ -5,13 +5,17 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
+var passport = require('passport');
 var nodeMailer = require('nodemailer');
 
 require('./models/Candidate');
 require('./models/Questionnaire');
 require('./models/Question');
+require('./models/UserSchema');
 
 mongoose.connect('mongodb://localhost/jobs-app');
+
+require('./config/passport');
 
 var transporter = nodeMailer.createTransport();
 
@@ -31,6 +35,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(passport.initialize());
 
 app.use('/', routes);
 app.use('/users', users);
