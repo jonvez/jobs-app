@@ -6,4 +6,8 @@ var CandidateSchema = new mongoose.Schema({
   questionnaire: {type: mongoose.Schema.Types.ObjectId, ref: 'Questionnaire'}
 });
 
+CandidateSchema.methods.findByEmail = function(callback){
+  //todo is this method necessary? mongoose find?
+};
+
 mongoose.model('Candidate', CandidateSchema);

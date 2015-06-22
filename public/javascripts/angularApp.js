@@ -1,10 +1,28 @@
-var app = angular.module('jobsAppClient', ['ui.router', 'checklist-model']);
+var app = angular.module('jobsApp', ['ui.router', 'checklist-model']);
 
 app.controller('MainCtrl',[
   '$scope',
+  '$state',
   'auth',
-  function($scope, auth) {
+  'questionnaireSvc',
+  'candidateSvc',
+  function($scope, $state, auth, questionnaireSvc, candidateSvc) {
     $scope.isLoggedIn = auth.isLoggedIn;
+    $scope.createCandidate = function(){
+      candidateSvc.save($scope.candidate).error(function(err){
+        $scope.error = err;
+      }).then(function(){
+        $state.go('questions');
+      });
+    };
+    $scope.findQuestionnaireByEmail = function(){
+      questionnaireSvc.findByCandidateEmail($scope.email).error(function(err){
+        $scope.error = err;
+      }).then(function(candidate){
+        $location.path('/questionnaire/' + candidate.questionnaire._id + '/response').replace();
+        $state.go('response');
+      });
+    };
   }
 ]);
 
@@ -40,10 +58,11 @@ app.controller('QuestionCtrl',[
 
 app.controller('QuestionnairesCtrl',[
   '$scope',
+  '$state',
   'questionnaireSvc',
   'questionSvc',
   'auth',
-  function($scope, questionnaireSvc, questionSvc, auth) {
+  function($scope, $state, questionnaireSvc, questionSvc, auth) {
     $scope.isLoggedIn = auth.isLoggedIn;
     $scope.questions = questionSvc.questions;
     $scope.questionnaires = questionnaireSvc.questionnaires;
@@ -62,8 +81,6 @@ app.controller('QuestionnairesCtrl',[
       questionnaire.name = 'new Questionnaire';
       //questionnaire.name = 'Questionnaire for ' + questionnaire.candidate.name;
       questionnaireSvc.save(questionnaire);
-      $scope.questionnaire = null;
-      $scope.selectedQuestions = [];
     };
   }
 ]);
@@ -71,9 +88,10 @@ app.controller('QuestionnairesCtrl',[
 app.controller('QuestionnaireCtrl',[
   '$scope',
   'questionnaireSvc',
+  'candidateSvc',
   'questionnaire',
   'auth',
-  function($scope, questionnaireSvc, questionnaire, auth) {
+  function($scope, questionnaireSvc, candidateSvc, questionnaire, auth) {
     $scope.isLoggedIn = auth.isLoggedIn;
     $scope.questionnaire = questionnaire;
     $scope.saveQuestionnaire = function(){
@@ -81,7 +99,37 @@ app.controller('QuestionnaireCtrl',[
       $scope.questionnaire = null;
     };
     $scope.sendQuestionnaire = function(){
-      questionnaireSvc.send($scope.questionnaire);
+      candidateSvc.send($scope.candidate);
+    };
+  }
+]);
+
+app.controller('CandidatesCtrl',[
+  '$scope',
+  'candidateSvc',
+  'auth',
+  function($scope, candidateSvc, auth) {
+    $scope.isLoggedIn = auth.isLoggedIn;
+    $scope.candidates = candidateSvc.candidates;
+    $scope.addCandidate = function(){
+      candidate = $scope.candidate;
+      candidateSvc.save(candidate);
+      $scope.candidate = null;
+    };
+  }
+]);
+
+app.controller('CandidateCtrl',[
+  '$scope',
+  'candidateSvc',
+  'candidate',
+  'auth',
+  function($scope, candidateSvc, candidate, auth) {
+    $scope.isLoggedIn = auth.isLoggedIn;
+    $scope.candidate = candidate;
+    $scope.saveCandidate = function(){
+      candidateSvc.save($scope.candidate);
+      $scope.candidate = null;
     };
   }
 ]);
@@ -110,15 +158,15 @@ app.controller('AuthCtrl', [
   function($scope, $state, auth){
     $scope.user = {};
     $scope.register = function() {
-      auth.register($scope.user).error(function (error) {
-        $scope.error = error;
+      auth.register($scope.user).error(function (err) {
+        $scope.error = err;
       }).then(function () {
         $state.go('adminHome');
       });
     };
     $scope.logIn = function(){
-      auth.logIn($scope.user).error(function(error){
-        $scope.error = error;
+      auth.logIn($scope.user).error(function(err){
+        $scope.error = err;
       }).then(function(){
         $state.go('adminHome');
       });
@@ -166,7 +214,7 @@ app.factory('questionSvc', ['$http', 'auth', function($http, auth){
   return o;
 }]);
 
-app.factory('questionnaireSvc', ['$http', 'auth', function($http, auth){
+app.factory('questionnaireSvc', ['$http', '$location', 'auth', function($http, $location, auth){
   var o = { questionnaires: [] };
   o.getAll = function(){
     return $http.get('/questionnaires', {
@@ -188,6 +236,9 @@ app.factory('questionnaireSvc', ['$http', 'auth', function($http, auth){
         headers: {Authorization: 'Bearer ' + auth.getToken() }
       }).success(function(data){
         o.questionnaires.push(data);
+        console.log(data._id);
+        console.log($location.path());
+        $location.path('/admin/questionnaires/' + data._id).replace();
       });
     } else {
       return $http.put('/questionnaires/' + questionnaire._id, questionnaire, {
@@ -200,10 +251,48 @@ app.factory('questionnaireSvc', ['$http', 'auth', function($http, auth){
       headers: {Authorization: 'Bearer ' + auth.getToken() }
     });
   };
-  o.send = function(questionnaire){
-    return $http.post('/questionnaires/' + questionnaire._id + '/send', questionnaire, {
+  o.findByCandidateEmail = function(email){
+    return $http.get('/candidates/locate/?email=' + email);
+  };
+  return o;
+}]);
+
+app.factory('candidateSvc', ['$http', 'auth', function($http, auth){
+  var o = { candidates: [] };
+  o.getAll = function(){
+    return $http.get('/candidates', {
+      headers: {Authorization: 'Bearer ' + auth.getToken() }
+    }).success(function(data){
+      angular.copy(data, o.candidates);
+    });
+  };
+  o.get = function(id){
+    return $http.get('/candidates/' + id, {
+      headers: {Authorization: 'Bearer ' + auth.getToken() }
+    }).then(function(res){
+      return res.data;
+    });
+  };
+  o.save = function(candidate){
+    if(!candidate._id || candidate._id === ''){
+      return $http.post('/candidates', candidate, {
+        headers: {Authorization: 'Bearer ' + auth.getToken() }
+      }).success(function(data){
+        o.candidates.push(data);
+      });
+    } else {
+      return $http.put('/candidates/' + candidate._id, candidate, {
+        headers: {Authorization: 'Bearer ' + auth.getToken() }
+      });
+    }
+  };
+  o.send = function(candidate){
+    return $http.post('/candidates/' + candidate._id + '/send', candidate, {
       headers: {Authorization: 'Bearer ' + auth.getToken() }
     });
+  };
+  o.findByEmail = function(email){
+    return $http.get('/candidates/locate/?email=' + email);
   };
   return o;
 }]);
@@ -260,7 +349,13 @@ app.config([
     $stateProvider.state('home', {
       url: '/home',
       templateUrl: '/home.html',
-      controller: 'MainCtrl'
+      controller: 'MainCtrl',
+      questionnaire: ['$stateParams', 'questionnaireSvc', function($stateParams, questionnaireSvc){
+        return questionnaireSvc.getAll();
+      }],
+      candidateSvc: ['$stateParams', 'candidateSvc', function($stateParams, candidateSvc){
+        return candidateSvc.getAll();
+      }]
     });
     $stateProvider.state('adminHome', {
       url: '/admin/home',
@@ -325,20 +420,46 @@ app.config([
         }
       }],
       resolve: {
-        questionnaire: ['$stateParams', 'questionnaireSvc', function($stateParams, questionnaireSvc){
-          return questionnaireSvc.get($stateParams.id);
+        candidate: ['$stateParams', 'candidateSvc', function($stateParams, candidateSvc){
+          return candidateSvc.get($stateParams.id);
         }]
+
       }
     });
-    $stateProvider.state('response', {
-      url: '/admin/questionnaires/{id}/response',
-      templateUrl: '/response.html',
-      controller: 'ResponseCtrl',
+    $stateProvider.state('candidates', {
+      url: '/admin/candidates',
+      templateUrl: '/candidates.html',
+      controller: 'CandidatesCtrl',
       onEnter: ['$state', 'auth', function($state, auth){
         if(!auth.isLoggedIn()){
           $state.go('home');
         }
       }],
+      resolve: {
+        candidates: ['candidateSvc', function(candidateSvc){
+          return candidateSvc.getAll();
+        }]
+      }
+    });
+    $stateProvider.state('candidate', {
+      url: '/admin/candidate/{id}',
+      templateUrl: '/candidate.html',
+      controller: 'CandidateCtrl',
+      onEnter: ['$state', 'auth', function($state, auth){
+        if(!auth.isLoggedIn()){
+          $state.go('home');
+        }
+      }],
+      resolve: {
+        candidate: ['$stateParams', 'candidateSvc', function($stateParams, candidateSvc){
+          return candidateSvc.get($stateParams.id);
+        }]
+      }
+    });
+    $stateProvider.state('response', {
+      url: '/questionnaires/{id}/response',
+      templateUrl: '/response.html',
+      controller: 'ResponseCtrl',
       resolve: {
         questionnaire: ['$stateParams', 'questionnaireSvc', function($stateParams, questionnaireSvc){
           return questionnaireSvc.get($stateParams.id);

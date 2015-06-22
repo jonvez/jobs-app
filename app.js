@@ -6,7 +6,6 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 var passport = require('passport');
-var nodeMailer = require('nodemailer');
 
 require('./models/Candidate');
 require('./models/Questionnaire');
@@ -16,8 +15,6 @@ require('./models/UserSchema');
 mongoose.connect('mongodb://localhost/jobs-app');
 
 require('./config/passport');
-
-var transporter = nodeMailer.createTransport();
 
 var routes = require('./routes/index');
 var users = require('./routes/users');

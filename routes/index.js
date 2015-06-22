@@ -1,7 +1,12 @@
 var express = require('express');
 var mongoose = require('mongoose');
+var url = require('url');
 var passport = require('passport');
 var jwt = require('express-jwt');
+var nodeMailer = require('nodemailer');
+
+var transporter = nodeMailer.createTransport();
+transporter.emailFrom = 'jonvez+jobs=app@gmail.com';
 
 //todo externalize
 var auth = jwt({secret: 'SECRET', userProperty: 'payload'});
@@ -153,13 +158,26 @@ router.put('/questionnaires/:questionnaire/complete', auth, function(req, res, n
   });
 });
 
-router.post('/questionnaires/:questionnaire/send', auth, function(req, res, next){
-  var questionnaire = req.questionnaire;
+router.post('/candidates/:candidate/send', auth, function(req, res, next){
+  var candidate = req.candidate;
+  //todo clean up string concats
+  var subjectText = "Hello, " + candidate.name + "\n\nThis email is a request to complete a job candidate " +
+    "questionnaire based on your interest in the Acme Co.  Please click the below link to access the " +
+    "questionnaire:\n\n\n\n" + generateCandidateLink(candidate.questionnaire);
   transporter.sendMail({
-    from: 'jonvez+jobs=app@gmail.com',
-    to: questionnaire.candidate.email,
-    subject: questionnaire.name,
-    text: 'hello mail!'
+    from: transporter.emailFrom,
+    to: candidate.email,
+    subject: candidate.questionnaire.name,
+    text: subjectText
+  });
+});
+
+//todo add db indexes, specifically candidate uniqueness
+router.get('/candidates/locate', function(req, res, next){
+  var email = url.parse(req.url).query.email;
+  Candidate.findOne({email: email}).populate('questionnaire', function(err, candidate){
+    if(err) { return err; }
+    res.json(candidate);
   });
 });
 
@@ -190,5 +208,11 @@ router.post('/login', function(req, res, next){
     }
   })(req, res, next);
 });
+
+generateCandidateLink = function(questionnaire){
+  //todo externalize hostname
+  var hostname = "http://localhost:3000";
+  return hostname + "/questionnaire/" + questionnaire._id + "/response";
+};
 
 module.exports = router;
