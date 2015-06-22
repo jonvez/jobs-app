@@ -420,10 +420,9 @@ app.config([
         }
       }],
       resolve: {
-        candidate: ['$stateParams', 'candidateSvc', function($stateParams, candidateSvc){
-          return candidateSvc.get($stateParams.id);
+        questionnaire: ['$stateParams', 'questionnaireSvc', function($stateParams, questionnaireSvc){
+          return questionnaireSvc.get($stateParams.id);
         }]
-
       }
     });
     $stateProvider.state('candidates', {
