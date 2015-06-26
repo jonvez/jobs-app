@@ -6,8 +6,7 @@ var QuestionnaireSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, ref: 'Question'},
     answer: String
   }],
-  //candidate: {type: mongoose.Schema.Types.ObjectId, ref: 'Candidate'},
-  inProgress: {type: Boolean(false)},
+  candidate: {type: mongoose.Schema.Types.ObjectId, ref: 'Candidate'},
   completed: {type: Boolean(false)}
 });
 

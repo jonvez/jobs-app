@@ -6,7 +6,7 @@ var jwt = require('express-jwt');
 var nodeMailer = require('nodemailer');
 
 var transporter = nodeMailer.createTransport();
-transporter.emailFrom = 'jonvez+jobs=app@gmail.com';
+transporter.emailFrom = 'jonvez+jobs-app@gmail.com';
 
 //todo externalize
 var auth = jwt({secret: 'SECRET', userProperty: 'payload'});
@@ -24,8 +24,9 @@ router.get('/', function(req, res) {
 });
 
 router.param('questionnaire', function(req, res, next, id){
-  var query = Questionnaire.findById(id);
-  query.exec(function(err, questionnaire){
+  Questionnaire.findById(id)
+    .populate('candidate questionAnswerPairs questionAnswerPairs.question')
+    .exec(function(err, questionnaire){
     if(err) { return next(err); }
     if(!questionnaire) { return next(new Error('questionnaire not found')); }
     req.questionnaire = questionnaire;
@@ -54,10 +55,12 @@ router.param('candidate', function(req, res, next, id){
 });
 
 router.get('/questionnaires', auth, function(req, res, next) {
-  Questionnaire.find(function(err, questionnaires){
-    if(err){ return next(err); }
-    res.json(questionnaires);
-  });
+  Questionnaire.find()
+    .populate('candidate questionAnswerPairs questionAnswerPairs.question')
+    .exec(function(err, questionnaires){
+      if(err){ return next(err); }
+      res.json(questionnaires);
+  })
 });
 
 router.get('/questions', auth, function(req, res, next) {
@@ -102,7 +105,7 @@ router.get('/questions/:question', auth, function(req, res){
   res.json(req.question);
 });
 
-router.get('/questionnaires/:questionnaire', auth, function(req, res){
+router.get('/questionnaires/:questionnaire', function(req, res){
   req.questionnaire.populate('candidate questionAnswerPairs questionAnswerPairs.question', function(err, questionnaire){
     if(err){ return next(err); }
     res.json(questionnaire);
@@ -137,37 +140,25 @@ router.put('/candidates/:candidate', auth, function(req, res, next){
   });
 });
 
-router.put('/questionnaires/:questionnaire/respond', auth, function(req, res, next){
+router.put('/questionnaires/:questionnaire/respond', function(req, res, next){
   //todo only allow answers & flags to be changed
   var questionnaire = req.body;
-  questionnaire.inProgress = true;
   Questionnaire.findByIdAndUpdate(questionnaire._id, questionnaire, function(err, questionnaire){
     if(err) { return next(err); }
     res.json(questionnaire);
   });
 });
 
-router.put('/questionnaires/:questionnaire/complete', auth, function(req, res, next){
-  //todo only allow answers & flags to be changed
-  var questionnaire = req.body;
-  questionnaire.inProgress = false;
-  questionnaire.completed = true;
-  Questionnaire.findByIdAndUpdate(questionnaire._id, questionnaire, function(err, questionnaire){
-    if(err) { return next(err); }
-    res.json(questionnaire);
-  });
-});
-
-router.post('/candidates/:candidate/send', auth, function(req, res, next){
-  var candidate = req.candidate;
+router.post('/questionnaires/:questionnaire/send', auth, function(req, res, next){
+  var questionnaire = req.questionnaire;
   //todo clean up string concats
-  var subjectText = "Hello, " + candidate.name + "\n\nThis email is a request to complete a job candidate " +
+  var subjectText = "Hello, " + questionnaire.candidate.name + "\n\nThis email is a request to complete a job candidate " +
     "questionnaire based on your interest in the Acme Co.  Please click the below link to access the " +
-    "questionnaire:\n\n\n\n" + generateCandidateLink(candidate.questionnaire);
+    "questionnaire:\n\n\n\n" + generateQuestionnaireLink(questionnaire);
   transporter.sendMail({
     from: transporter.emailFrom,
-    to: candidate.email,
-    subject: candidate.questionnaire.name,
+    to: questionnaire.candidate.email,
+    subject: questionnaire.name,
     text: subjectText
   });
 });
@@ -209,10 +200,10 @@ router.post('/login', function(req, res, next){
   })(req, res, next);
 });
 
-generateCandidateLink = function(questionnaire){
+generateQuestionnaireLink = function(questionnaire){
   //todo externalize hostname
   var hostname = "http://localhost:3000";
-  return hostname + "/questionnaire/" + questionnaire._id + "/response";
+  return hostname + "/#/questionnaires/" + questionnaire._id + "/response";
 };
 
 module.exports = router;
