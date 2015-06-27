@@ -35,92 +35,44 @@
     </div>
 
     <script type="text/ng-template" id="/admin.html">
-      <ui-view>
-        <h4>Thank you for visiting the Acme Co. job site!</h4>
-        <p>Through the below process, we'll create a candidate entry, add a set of questions and send a questionnaire.</p>
-        <p>So let's get started!  Create a candidate below:</p>
-        <form ng-submit="createCandidate()" style="margin-top: 30px;">
-          <div class="form-group">
-            <input type="text" class="form-control" placeholder="Name" ng-model="questionnaire.candidate.name">
-          </div>
-          <div class="form-group">
-            <input type="text" class="form-control" placeholder="Email" ng-model="questionnaire.candidate.email">
-          </div>
-          <button type="submit" class="btn btn-primary">Create</button>
-        </form>
-        <p>*OR <a href="#/admin/questionnaires">view existing candidate questionnaires</a></p>
-      </ui-view>
-    </script>
-
-    <script type="text/ng-template" id="/admin-questionnaires.html">
-      <h4>Candidate Questionnaires</h4>
-      <div ng-repeat="questionnaire in questionnaires">
-        {{questionnaire.name}}<br/>
-        candidate name: {{questionnaire.candidate.name}}<br/>
-        candidate email: {{questionnaire.candidate.email}}<br/>
-        <div ng-if="questionnaire.completed">status: complete</div>
-        <div ng-if="!questionnaire.completed">status: pending</div>
-        responses:<br/>
-        <div ng-if="questionnaire.completed">
-          <!--<a href="" ng-click="toggleShowResponses(questionnaire._id)">view responses</a>-->
-          <!--<div ng-hide="showResponses">-->
-            <div ng-repeat="questionAnswerPair in questionnaire.questionAnswerPairs">
-              <p>{{questionAnswerPair.question.q}}</p>
-              <p>{{questionAnswerPair.answer}}</p>
-            </div>
-          <!--</div>-->
+      <h4>Thank you for visiting the Acme Co. job site!</h4>
+      <p>Through the below process, we'll create and send a questionnaire to a job candidate.</p>
+      <p>So let's get started!  First we'll create a candidate:</p>
+      <form ng-submit="createQuestionnaireAndCandidate()" style="margin-top: 30px;">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Name" ng-model="questionnaire.candidate.name">
         </div>
-
-      </div>
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Email" ng-model="questionnaire.candidate.email">
+        </div>
+        <button type="submit" class="btn btn-primary">Create</button>
+      </form>
+      <p>*OR, take a look at previously created <a href="#/admin/questionnaires">questionnaires and candidate responses</a></p>
     </script>
 
     <script type="text/ng-template" id="/admin-questions.html">
-      <p>Great!  Now let's create some questions.</p>
-
-      <form ng-submit="addQuestion()" style="margin-top: 30px;">
+      <p>Great!  Now let's add some questions to our questionnaire.</p>
+      <div ng-if="questions.length > 0">
+        <p>Here are the questions already in the system: </p>
+        <div ng-repeat="question in questions">
+          <div class="checkbox">
+            <label><input type="checkbox" checklist-model="questionnaire.questionAnswerPairs.question" checklist-value="question">{{question.q}}</label>
+          </div>
+        </div>
+        <p style="margin-top: 30px;">*OR, add a new question:</p>
+      </div>
+      <form ng-submit="addQuestion()">
         <div class="form-group">
           <input type="text" class="form-control" placeholder="Question" ng-model="question.q">
         </div>
         <button type="submit" class="btn btn-primary">Add</button>
       </form>
-
-      <p ng-if="questions.length > 0" style="margin-top: 30px;">Here's what we've currently got: </p>
-      <div ng-repeat="question in questions">
-        {{question.q}}
-        <a href="#/admin/questions/{{question._id}}">edit</a>
-      </div>
-
-      <p ng-if="questions.length > 0" style="margin-top: 30px;">
-        Add as many questions as you like.  When you're ready, let's <a href="#/admin/questionnaires/{{questionnaire._id}}">build a questionnaire</a>
-      </p>
+      <!--<div ng-if="questionnaire.questionAnswerPairs.length > 0">-->
+        <form ng-submit="saveToQuestionnaire()">
+          <button type="submit" class="btn btn-primary">Review and Send</button>
+        </form>
+      <!--</div>-->
     </script>
-
-    <script type="text/ng-template" id="/admin-questionnaire.html">
-      <form ng-submit="addQuestionnaire()" style="margin-top: 30px;">
-        <p>Select one or more questions:</p>
-        <div ng-repeat="question in questions">
-          <div class="checkbox">
-            <label><input type="checkbox" checklist-model="questionnaire.questionAnswerPairs" checklist-value="question">{{question.q}}</label>
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary">Save and Review</button>
-      </form>
-    </script>
-
-    <script type="text/ng-template" id="/question.html">
-      <h1>Edit Question</h1>
-      <div class="path" style="margin-bottom: 30px;">
-        <a href="#/admin">Home</a> >
-        <a href="#/admin/questions">All Questions</a>
-      </div>
-      <form ng-submit="saveQuestion()" style="margin-top: 30px;">
-        <div class="form-group">
-          <input type="text" class="form-control" placeholder="Question" ng-model="question.q">
-        </div>
-        <button type="submit" class="btn btn-primary">Save</button>
-      </form>
-    </script>
-
 
     <script type="text/ng-template" id="/admin-review.html">
         <div>
@@ -129,12 +81,36 @@
           <div>{{questionnaire.candidate.email}}</div>
         </div>
         <div>
-          <p>Questionnaire:</p>
+          <p>Questions:</p>
           <div ng-repeat="questionAnswerPair in questionnaire.questionAnswerPairs">
             {{questionAnswerPair.question.q}}
           </div>
         </div>
         <button type="button" class="btn btn-primary" ng-click="sendQuestionnaire()">Send to Candidate</button>
+    </script>
+
+    <script type="text/ng-template" id="/admin-questionnaires.html">
+      <h4>Candidate Questionnaires</h4>
+      <div ng-repeat="questionnaire in questionnaires">
+        {{questionnaire.name}}<br/>
+        <div ng-if="questionnaire.completed">status: complete<br/>
+          <a href="#/admin/questionnaires/{{questionnaire._id}}/response">review responses</a>
+        </div>
+        <div ng-if="!questionnaire.completed">status: pending</div>
+      </div>
+    </script>
+
+    <script type="text/ng-template" id="/admin-response.html">
+      <h4>{{questionnaire.name}}</h4>
+      <strong>candidate name:</strong> {{questionnaire.candidate.name}}<br/>
+      <strong>candidate email:</strong> {{questionnaire.candidate.email}}<br/>
+      <strong>responses:</strong><br/>
+      <div ng-if="questionnaire.completed">
+        <div ng-repeat="questionAnswerPair in questionnaire.questionAnswerPairs">
+          <p><strong>{{questionAnswerPair.question.q}}</strong></p>
+          <p>{{questionAnswerPair.answer}}</p>
+        </div>
+      </div>
     </script>
 
     <script type="text/ng-template" id="/register.html">

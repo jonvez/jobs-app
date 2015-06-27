@@ -25,10 +25,12 @@ router.get('/', function(req, res) {
 
 router.param('questionnaire', function(req, res, next, id){
   Questionnaire.findById(id)
-    .populate('candidate questionAnswerPairs questionAnswerPairs.question')
+    .populate('candidate questionAnswerPairs.question')
     .exec(function(err, questionnaire){
     if(err) { return next(err); }
     if(!questionnaire) { return next(new Error('questionnaire not found')); }
+      console.log('param');
+      console.log(questionnaire);
     req.questionnaire = questionnaire;
     return next();
   });
@@ -78,6 +80,7 @@ router.get('/candidates', auth, function(req, res, next) {
 });
 
 router.post('/questionnaires', auth, function(req, res, next){
+
   var questionnaire = new Questionnaire(req.body);
   questionnaire.save(function(err, questionnaire){
     if(err) { return next(err); }
@@ -107,6 +110,8 @@ router.get('/questions/:question', auth, function(req, res){
 
 router.get('/questionnaires/:questionnaire', function(req, res){
   req.questionnaire.populate('candidate questionAnswerPairs questionAnswerPairs.question', function(err, questionnaire){
+    console.log('method');
+    console.log(questionnaire);
     if(err){ return next(err); }
     res.json(questionnaire);
   });
@@ -151,6 +156,11 @@ router.put('/questionnaires/:questionnaire/respond', function(req, res, next){
 
 router.post('/questionnaires/:questionnaire/send', auth, function(req, res, next){
   var questionnaire = req.questionnaire;
+  questionnaire.sent = true;
+  Questionnaire.findByIdAndUpdate(questionnaire._id, questionnaire, function(err, questionnaire){
+    if(err) { return next(err); }
+    res.json(questionnaire);
+  });
   //todo clean up string concats
   var subjectText = "Hello, " + questionnaire.candidate.name + "\n\nThis email is a request to complete a job candidate " +
     "questionnaire based on your interest in the Acme Co.  Please click the below link to access the " +

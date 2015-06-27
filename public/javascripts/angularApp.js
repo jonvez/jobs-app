@@ -37,22 +37,26 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
     '$location',
     'questionSvc',
     'questionnaireSvc',
-    'auth',
     'questionnaire',
-    function($state, $scope, $location, questionSvc, questionnaireSvc, auth, questionnaire) {
-      $scope.isLoggedIn = auth.isLoggedIn;
-      $scope.questionnaire = questionnaire || {
-          candidate: null,
-          questionAnswerPairs: []
-        };
+    function($state, $scope, $location, questionSvc, questionnaireSvc, questionnaire) {
       $scope.questions = questionSvc.questions;
       $scope.question = {};
-      $scope.createCandidate = function(){
+      $scope.questionnaire = questionnaire || {
+          candidate: {},
+          questionAnswerPairs: []
+        };
+      $scope.createQuestionnaireAndCandidate = function(){
         questionnaireSvc.saveCandidate($scope.questionnaire.candidate).error(function(err){
           $scope.error = err;
         }).then(function(res){
           $scope.questionnaire.candidate = res.data;
-          $location.path('/admin/questionnaires/' + $scope.questionnaire._id + '/questions').replace();
+          $scope.questionnaire.name = 'Questionnaire for ' + $scope.questionnaire.candidate.name;
+          questionnaireSvc.saveQuestionnaire($scope.questionnaire).error(function(err){
+            $scope.error = err;
+          }).then(function(res){
+            $scope.questionnaire = res.data;
+            $location.path('/admin/questionnaires/' + $scope.questionnaire._id).replace();
+          });
         });
       };
       $scope.addQuestion = function(){
@@ -66,20 +70,10 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
         });
         $scope.question = {};
       };
-      $scope.saveQuestionnaire = function(){
-        questionnaireSvc.save($scope.questionnaire).error(function(err){
-          $scope.error = err;
-        }).then(function(res){
-          $scope.questionnaire = res.data;
-          $location.path('/admin/questionnaires/' + $scope.questionnaire._id).replace();
-        });
-      };
-      $scope.sendQuestionnaire = function(){
-        questionnaireSvc.sendQuestionnaire($scope.questionnaire);
-      };
-      $scope.addQuestionnaire = function(){
-        questionnaire = $scope.questionnaire;
-        questionnaire.name = 'Questionnaire for ' + questionnaire.candidate.name;
+      $scope.saveToQuestionnaire = function(){
+        //questionnaire = $scope.questionnaire;
+        console.log($scope.questionnaire);
+
         //questionnaire.questionAnswerPairs = [];
         //for(var i = 0; i < $scope.selectedQuestions.questions.length; i++){
         //  questionnaire.questionAnswerPairs.push({
@@ -87,12 +81,16 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
         //    answer: ''
         //  });
         //}
-        questionnaireSvc.saveQuestionnaire(questionnaire).error(function(err){
+        questionnaireSvc.saveQuestionnaire($scope.questionnaire).error(function(err){
           $scope.error = err;
         }).then(function(res){
           $scope.questionnaire = res.data;
           $location.path('/admin/questionnaires/' + $scope.questionnaire._id + '/review').replace();
         });
+      };
+      $scope.sendQuestionnaire = function(){
+        questionnaireSvc.sendQuestionnaire($scope.questionnaire);
+        $location.path('/admin');
       };
     }
   ])
@@ -116,13 +114,15 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
     'responseSvc',
     'questionnaire',
     function($state, $scope, responseSvc, questionnaire) {
+      console.log(questionnaire);
       $scope.questionnaire = questionnaire;
-      if($scope.questionnaire.completed){
+      if($scope.questionnaire && $scope.questionnaire.completed){
         $scope.error = {message: "Sorry, you have already submitted your responses to this questionnaire."};
         //$state.go('home');
       }
       $scope.saveResponse = function(){
         responseSvc.respond($scope.questionnaire);
+        $state.go('home');
       };
     }
   ])
@@ -143,10 +143,12 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
       return $http.get('/questionnaires/' + id, {
         headers: {Authorization: 'Bearer ' + auth.getToken() }
       }).then(function(res){
+        console.log(res.data);
         return res.data;
       });
     };
     o.saveQuestionnaire = function(questionnaire){
+      console.log(questionnaire._id);
       if(!questionnaire._id || questionnaire._id === ''){
         return $http.post('/questionnaires', questionnaire, {
           headers: {Authorization: 'Bearer ' + auth.getToken() }
@@ -154,6 +156,7 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
           o.questionnaires.push(data);
         });
       } else {
+        console.log('existing');
         return $http.put('/questionnaires/' + questionnaire._id, questionnaire, {
           headers: {Authorization: 'Bearer ' + auth.getToken() }
         });
@@ -301,7 +304,8 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
             if(!auth.isLoggedIn()){
               $state.go('home');
             }
-          }],
+          }]
+          ,
           resolve: {
             q1: ['$stateParams', 'questionnaireSvc', function($stateParams, questionnaireSvc){
               return questionnaireSvc.getAllQuestionnaires();
@@ -311,13 +315,13 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
             }],
             questionnaire: ['$stateParams', 'questionnaireSvc', function ($stateParams, questionnaireSvc) {
               if($stateParams.id){
-                return questionnaireSvc.getQuestionnaire();
+                return questionnaireSvc.getQuestionnaire($stateParams.id);
               }
             }]
           }
         })
-        .state('admin.questionnaires', {
-          url: '/questionnaires',
+        .state('questionnaires', {
+          url: '/admin/questionnaires',
           templateUrl: '/admin-questionnaires.html',
           controller: 'QuestionnairesCtrl',
           resolve: {
@@ -326,17 +330,59 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
             }]
           }
         })
-        .state('admin.questions', {
-          url: '/questionnaires/{id}/questions',
-          templateUrl: '/admin-questions.html'
+        .state('questionnaire', {
+          url: '/admin/questionnaires/{id}',
+          templateUrl: '/admin-questions.html',
+          controller: 'QuestionnaireCtrl',
+          onEnter: ['$state', 'auth', function($state, auth){
+            if(!auth.isLoggedIn()){
+              $state.go('home');
+            }
+          }],
+          resolve: {
+            q2: ['$stateParams', 'questionSvc', function($stateParams, questionSvc){
+              return questionSvc.getAll();
+            }],
+            questionnaire: ['$stateParams', 'questionnaireSvc', function ($stateParams, questionnaireSvc) {
+              if($stateParams.id){
+                return questionnaireSvc.getQuestionnaire($stateParams.id);
+              }
+            }]
+          }
         })
-        .state('admin.questionnaire', {
-          url: '/questionnaires/{id}',
-          templateUrl: '/admin-questionnaire.html'
+        .state('review', {
+          url: '/admin/questionnaires/{id}/review',
+          templateUrl: '/admin-review.html',
+          controller: 'QuestionnaireCtrl',
+          onEnter: ['$state', 'auth', function($state, auth){
+            if(!auth.isLoggedIn()){
+              $state.go('home');
+            }
+          }],
+          resolve: {
+            questionnaire: ['$stateParams', 'questionnaireSvc', function ($stateParams, questionnaireSvc) {
+              if($stateParams.id){
+                return questionnaireSvc.getQuestionnaire($stateParams.id);
+              }
+            }]
+          }
         })
-        .state('admin.review', {
-          url: '/questionnaires/{id}/review',
-          templateUrl: '/admin-review.html'
+        .state('reviewResponse', {
+          url: '/admin/questionnaires/{id}/response',
+          templateUrl: '/admin-response.html',
+          controller: 'QuestionnaireCtrl',
+          onEnter: ['$state', 'auth', function($state, auth){
+            if(!auth.isLoggedIn()){
+              $state.go('home');
+            }
+          }],
+          resolve: {
+            questionnaire: ['$stateParams', 'questionnaireSvc', function ($stateParams, questionnaireSvc) {
+              if($stateParams.id){
+                return questionnaireSvc.getQuestionnaire($stateParams.id);
+              }
+            }]
+          }
         })
         .state('response', {
           url: '/questionnaires/{id}/response',
