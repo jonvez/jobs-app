@@ -56,7 +56,11 @@
         <p>Here are the questions already in the system: </p>
         <div ng-repeat="question in questions">
           <div class="checkbox">
-            <label><input type="checkbox" checklist-model="questionnaire.questionAnswerPairs.question" checklist-value="question">{{question.q}}</label>
+            <label>
+              <input type="checkbox" ng-model="selectedQuestions"
+                     ng-value="selectedQuestions._id">
+              {{question.q}}
+            </label>
           </div>
         </div>
         <p style="margin-top: 30px;">*OR, add a new question:</p>
@@ -101,6 +105,7 @@
     </script>
 
     <script type="text/ng-template" id="/admin-response.html">
+      <a href="/#/admin/questionnaires">Back to List</a>
       <h4>{{questionnaire.name}}</h4>
       <strong>candidate name:</strong> {{questionnaire.candidate.name}}<br/>
       <strong>candidate email:</strong> {{questionnaire.candidate.email}}<br/>

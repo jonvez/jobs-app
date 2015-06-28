@@ -71,17 +71,15 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
         $scope.question = {};
       };
       $scope.saveToQuestionnaire = function(){
-        //questionnaire = $scope.questionnaire;
-        console.log($scope.questionnaire);
-
-        //questionnaire.questionAnswerPairs = [];
-        //for(var i = 0; i < $scope.selectedQuestions.questions.length; i++){
-        //  questionnaire.questionAnswerPairs.push({
-        //    question: $scope.selectedQuestions.questions[i]._id,
-        //    answer: ''
-        //  });
-        //}
-        questionnaireSvc.saveQuestionnaire($scope.questionnaire).error(function(err){
+        questionnaire = $scope.questionnaire;
+        questionnaire.questionAnswerPairs = [];
+        for(var i = 0; i < $scope.selectedQuestions.length; i++){
+          questionnaire.questionAnswerPairs.push({
+            question: $scope.questionAnswerPairs.questions[i]._id,
+            answer: ''
+          });
+        }
+        questionnaireSvc.saveQuestionnaire(questionnaire).error(function(err){
           $scope.error = err;
         }).then(function(res){
           $scope.questionnaire = res.data;
