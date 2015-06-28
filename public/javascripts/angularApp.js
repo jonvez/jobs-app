@@ -1,4 +1,4 @@
-var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
+var app = angular.module('jobsApp', ['ui.router'])
 
   .controller('AuthCtrl', [
     '$scope',
@@ -45,6 +45,14 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
           candidate: {},
           questionAnswerPairs: []
         };
+      $scope.setSelectedQuestions = function(){
+        $scope.selectedQuestions = [];
+        for(var i = 0; i < $scope.questionnaire.questionAnswerPairs.length; i++){
+          $scope.selectedQuestions.push($scope.questionnaire.questionAnswerPairs[i].question);
+        }
+        console.log($scope.selectedQuestions);
+      };
+      $scope.setSelectedQuestions();
       $scope.createQuestionnaireAndCandidate = function(){
         questionnaireSvc.saveCandidate($scope.questionnaire.candidate).error(function(err){
           $scope.error = err;
@@ -60,31 +68,47 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
         });
       };
       $scope.addQuestion = function(){
+        if(!$scope.question || !$scope.question.q) return;
         questionSvc.save($scope.question).error(function(err){
           $scope.error = err;
         }).then(function(res){
-          $scope.questionnaire.questionAnswerPairs.push({
-            question: res.data,
-            answer: ''
-          })
+          var question = res.data;
+          $scope.questionnaire.questionAnswerPairs.push({question: question, answer: ''});
+          $scope.selectedQuestions.push(question);
         });
         $scope.question = {};
       };
       $scope.saveToQuestionnaire = function(){
-        questionnaire = $scope.questionnaire;
-        questionnaire.questionAnswerPairs = [];
-        for(var i = 0; i < $scope.selectedQuestions.length; i++){
-          questionnaire.questionAnswerPairs.push({
-            question: $scope.questionAnswerPairs.questions[i]._id,
-            answer: ''
-          });
-        }
-        questionnaireSvc.saveQuestionnaire(questionnaire).error(function(err){
+        $scope.syncSelections($scope.selectedQuestions);
+        questionnaireSvc.saveQuestionnaire($scope.questionnaire).error(function(err){
           $scope.error = err;
         }).then(function(res){
           $scope.questionnaire = res.data;
           $location.path('/admin/questionnaires/' + $scope.questionnaire._id + '/review').replace();
         });
+      };
+      $scope.toggleSelected = function(question){
+        var index = -1;
+        for(var i = 0; i < $scope.selectedQuestions.length; i++){
+          if(question._id === $scope.selectedQuestions[i]._id){
+            index = i;
+            break;
+          }
+        }
+        if(index == -1){
+          $scope.selectedQuestions.push(question);
+        } else {
+          $scope.selectedQuestions.splice(index, 1);
+        }
+      };
+      $scope.syncSelections = function(){
+        $scope.questionnaire.questionAnswerPairs = [];
+        for(var i = 0; i < $scope.selectedQuestions.length; i++){
+          $scope.questionnaire.questionAnswerPairs.push({
+            question: $scope.selectedQuestions[i],
+            answer: ''
+          });
+        }
       };
       $scope.sendQuestionnaire = function(){
         questionnaireSvc.sendQuestionnaire($scope.questionnaire);
@@ -112,7 +136,6 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
     'responseSvc',
     'questionnaire',
     function($state, $scope, responseSvc, questionnaire) {
-      console.log(questionnaire);
       $scope.questionnaire = questionnaire;
       if($scope.questionnaire && $scope.questionnaire.completed){
         $scope.error = {message: "Sorry, you have already submitted your responses to this questionnaire."};
@@ -141,12 +164,10 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
       return $http.get('/questionnaires/' + id, {
         headers: {Authorization: 'Bearer ' + auth.getToken() }
       }).then(function(res){
-        console.log(res.data);
         return res.data;
       });
     };
     o.saveQuestionnaire = function(questionnaire){
-      console.log(questionnaire._id);
       if(!questionnaire._id || questionnaire._id === ''){
         return $http.post('/questionnaires', questionnaire, {
           headers: {Authorization: 'Bearer ' + auth.getToken() }
@@ -154,7 +175,6 @@ var app = angular.module('jobsApp', ['ui.router', 'checklist-model'])
           o.questionnaires.push(data);
         });
       } else {
-        console.log('existing');
         return $http.put('/questionnaires/' + questionnaire._id, questionnaire, {
           headers: {Authorization: 'Bearer ' + auth.getToken() }
         });

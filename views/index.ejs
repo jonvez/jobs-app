@@ -6,8 +6,6 @@
     <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
     <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.3.10/angular.min.js"></script>
     <script src="http://cdnjs.cloudflare.com/ajax/libs/angular-ui-router/0.2.10/angular-ui-router.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-animate.min.js"></script>
-    <script src="http://vitalets.github.io/checklist-model/checklist-model.js"></script>
     <script src="/javascripts/angularApp.js"></script>
 
   </head>
@@ -53,17 +51,15 @@
     <script type="text/ng-template" id="/admin-questions.html">
       <p>Great!  Now let's add some questions to our questionnaire.</p>
       <div ng-if="questions.length > 0">
-        <p>Here are the questions already in the system: </p>
+        <p>Here are other questions already in the system: </p>
         <div ng-repeat="question in questions">
           <div class="checkbox">
             <label>
-              <input type="checkbox" ng-model="selectedQuestions"
-                     ng-value="selectedQuestions._id">
-              {{question.q}}
+              <input type="checkbox" ng-model="id" ng-click="toggleSelected(question)" ng-checked="isChecked(question)">{{question.q}}
             </label>
           </div>
         </div>
-        <p style="margin-top: 30px;">*OR, add a new question:</p>
+        <p style="margin-top: 30px;">*OR, add another question:</p>
       </div>
       <form ng-submit="addQuestion()">
         <div class="form-group">
@@ -71,11 +67,9 @@
         </div>
         <button type="submit" class="btn btn-primary">Add</button>
       </form>
-      <!--<div ng-if="questionnaire.questionAnswerPairs.length > 0">-->
-        <form ng-submit="saveToQuestionnaire()">
-          <button type="submit" class="btn btn-primary">Review and Send</button>
-        </form>
-      <!--</div>-->
+      <form ng-submit="saveToQuestionnaire()">
+        <button type="submit" class="btn btn-primary">Review and Send</button>
+      </form>
     </script>
 
     <script type="text/ng-template" id="/admin-review.html">

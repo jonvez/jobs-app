@@ -29,8 +29,6 @@ router.param('questionnaire', function(req, res, next, id){
     .exec(function(err, questionnaire){
     if(err) { return next(err); }
     if(!questionnaire) { return next(new Error('questionnaire not found')); }
-      console.log('param');
-      console.log(questionnaire);
     req.questionnaire = questionnaire;
     return next();
   });
@@ -110,9 +108,8 @@ router.get('/questions/:question', auth, function(req, res){
 
 router.get('/questionnaires/:questionnaire', function(req, res){
   req.questionnaire.populate('candidate questionAnswerPairs questionAnswerPairs.question', function(err, questionnaire){
-    console.log('method');
-    console.log(questionnaire);
-    if(err){ return next(err); }
+    if(err){ console.log(err);
+      return next(err); }
     res.json(questionnaire);
   });
 });
