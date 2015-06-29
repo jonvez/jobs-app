@@ -43,14 +43,15 @@ var app = angular.module('jobsApp', ['ui.router'])
       $scope.question = {};
       $scope.questionnaire = questionnaire || {
           candidate: {},
-          questionAnswerPairs: []
+          questionAnswerPairs: [],
+          sent: false,
+          completed: false
         };
       $scope.setSelectedQuestions = function(){
         $scope.selectedQuestions = [];
         for(var i = 0; i < $scope.questionnaire.questionAnswerPairs.length; i++){
           $scope.selectedQuestions.push($scope.questionnaire.questionAnswerPairs[i].question);
         }
-        console.log($scope.selectedQuestions);
       };
       $scope.setSelectedQuestions();
       $scope.createQuestionnaireAndCandidate = function(){
@@ -87,19 +88,30 @@ var app = angular.module('jobsApp', ['ui.router'])
           $location.path('/admin/questionnaires/' + $scope.questionnaire._id + '/review').replace();
         });
       };
-      $scope.toggleSelected = function(question){
+      //todo rewrite this really gross, naive implementation
+      //most/all this checkbox code is likely unnecessary; there has to be a better, more angular way
+      $scope.toggleSelected = function(question, checked){
         var index = -1;
         for(var i = 0; i < $scope.selectedQuestions.length; i++){
           if(question._id === $scope.selectedQuestions[i]._id){
             index = i;
+            if(!checked) {
+              $scope.selectedQuestions.splice(index, 1);
+            }
             break;
           }
         }
-        if(index == -1){
+        if(checked && index == -1){
           $scope.selectedQuestions.push(question);
-        } else {
-          $scope.selectedQuestions.splice(index, 1);
         }
+      };
+      $scope.isChecked = function(question){
+        for(var i = 0; i < $scope.selectedQuestions.length; i++){
+          if(question._id === $scope.selectedQuestions[i]._id){
+            return true;
+          }
+        }
+        return false;
       };
       $scope.syncSelections = function(){
         $scope.questionnaire.questionAnswerPairs = [];
@@ -137,10 +149,6 @@ var app = angular.module('jobsApp', ['ui.router'])
     'questionnaire',
     function($state, $scope, responseSvc, questionnaire) {
       $scope.questionnaire = questionnaire;
-      if($scope.questionnaire && $scope.questionnaire.completed){
-        $scope.error = {message: "Sorry, you have already submitted your responses to this questionnaire."};
-        //$state.go('home');
-      }
       $scope.saveResponse = function(){
         responseSvc.respond($scope.questionnaire);
         $state.go('home');

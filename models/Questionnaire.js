@@ -7,8 +7,8 @@ var QuestionnaireSchema = new mongoose.Schema({
     answer: String
   }],
   candidate: {type: mongoose.Schema.Types.ObjectId, ref: 'Candidate'},
-  sent: {type: Boolean(false)},
-  completed: {type: Boolean(false)}
+  sent: Boolean(false),
+  completed: Boolean(false)
 });
 
 mongoose.model('Questionnaire', QuestionnaireSchema);

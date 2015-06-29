@@ -55,7 +55,7 @@
         <div ng-repeat="question in questions">
           <div class="checkbox">
             <label>
-              <input type="checkbox" ng-model="id" ng-click="toggleSelected(question)" ng-checked="isChecked(question)">{{question.q}}
+              <input type="checkbox" ng-model="id" ng-click="toggleSelected(question, this.id)" ng-checked="isChecked(question)">{{question.q}}
             </label>
           </div>
         </div>
@@ -73,28 +73,35 @@
     </script>
 
     <script type="text/ng-template" id="/admin-review.html">
-        <div>
-          <p>Candidate Info:</p>
-          <div>{{questionnaire.candidate.name}}</div>
-          <div>{{questionnaire.candidate.email}}</div>
+      <a href="/#/admin/questionnaires/{{questionnaire._id}}">Back to Questions</a>
+      <div>
+        <p>Candidate Info:</p>
+        <div>{{questionnaire.candidate.name}}</div>
+        <div>{{questionnaire.candidate.email}}</div>
+      </div>
+      <div>
+        <p>Questions:</p>
+        <div ng-repeat="questionAnswerPair in questionnaire.questionAnswerPairs">
+          {{questionAnswerPair.question.q}}
         </div>
-        <div>
-          <p>Questions:</p>
-          <div ng-repeat="questionAnswerPair in questionnaire.questionAnswerPairs">
-            {{questionAnswerPair.question.q}}
-          </div>
-        </div>
-        <button type="button" class="btn btn-primary" ng-click="sendQuestionnaire()">Send to Candidate</button>
+      </div>
+      <button type="button" class="btn btn-primary" ng-click="sendQuestionnaire()">Send to Candidate</button>
     </script>
 
     <script type="text/ng-template" id="/admin-questionnaires.html">
+      <a href="/#/admin">Back to Admin Home</a>
       <h4>Candidate Questionnaires</h4>
       <div ng-repeat="questionnaire in questionnaires">
         {{questionnaire.name}}<br/>
-        <div ng-if="questionnaire.completed">status: complete<br/>
-          <a href="#/admin/questionnaires/{{questionnaire._id}}/response">review responses</a>
+        <div ng-show="questionnaire.completed">
+          status: complete <a href="#/admin/questionnaires/{{questionnaire._id}}/response">review responses</a>
         </div>
-        <div ng-if="!questionnaire.completed">status: pending</div>
+        <div ng-show="questionnaire.sent">
+          status: sent
+        </div>
+        <div ng-if="!questionnaire.completed && !questionnaire.sent">
+          status: unsent <a href="#/admin/questionnaires/{{questionnaire._id}}">edit</a>
+        </div>
       </div>
     </script>
 
@@ -153,7 +160,10 @@
     </script>
 
     <script type="text/ng-template" id="/response.html">
-      <form ng-submit="saveResponse()" style="margin-top: 30px;">
+      <div ng-if="questionnaire.completed">
+        Sorry, you have already submitted your responses to this questionnaire.  It can not be edited any more.
+      </div>
+      <form ng-submit="saveResponse()" ng-hide="questionnaire.completed" style="margin-top: 30px;">
         <p>Hi {{questionnaire.candidate.name}}!  Please answer the following questions:</p>
 
         <div ng-repeat="questionAnswerPair in questionnaire.questionAnswerPairs">
