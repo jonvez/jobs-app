@@ -6,7 +6,7 @@ var jwt = require('express-jwt');
 var nodeMailer = require('nodemailer');
 
 var transporter = nodeMailer.createTransport();
-transporter.emailFrom = 'jonvez+jobs-app@gmail.com';
+transporter.emailFrom = 'jobs-app@gmail.com';
 
 //todo externalize
 var auth = jwt({secret: 'SECRET', userProperty: 'payload'});
@@ -161,11 +161,11 @@ router.post('/questionnaires/:questionnaire/send', auth, function(req, res, next
   //todo clean up string concats
   var subjectText = "Hello, " + questionnaire.candidate.name + "\n\nThis email is a request to complete a job candidate " +
     "questionnaire based on your interest in the Acme Co.  Please click the below link to access the " +
-    "questionnaire:\n\n\n\n" + generateQuestionnaireLink(questionnaire);
+    "questionnaire:\n\n" + generateQuestionnaireLink(questionnaire);
   transporter.sendMail({
     from: transporter.emailFrom,
     to: questionnaire.candidate.email,
-    subject: questionnaire.name,
+    subject: "JOBS-APP: " + questionnaire.name,
     text: subjectText
   });
 });
