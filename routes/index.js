@@ -108,8 +108,7 @@ router.get('/questions/:question', auth, function(req, res){
 
 router.get('/questionnaires/:questionnaire', function(req, res){
   req.questionnaire.populate('candidate questionAnswerPairs questionAnswerPairs.question', function(err, questionnaire){
-    if(err){ console.log(err);
-      return next(err); }
+    if(err){ return next(err); }
     res.json(questionnaire);
   });
 });
