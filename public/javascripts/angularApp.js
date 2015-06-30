@@ -1,4 +1,4 @@
-var app = angular.module('jobsApp', ['ui.router'])
+var app = angular.module('jobsApp', ['ui.router', 'btford.markdown'])
 
   .controller('AuthCtrl', [
     '$scope',
@@ -148,10 +148,16 @@ var app = angular.module('jobsApp', ['ui.router'])
     'responseSvc',
     'questionnaire',
     function($state, $scope, responseSvc, questionnaire) {
+      if(questionnaire && questionnaire.completed) {
+        $state.go('home');
+      }
       $scope.questionnaire = questionnaire;
       $scope.saveResponse = function(){
-        responseSvc.respond($scope.questionnaire);
-        $state.go('home');
+        responseSvc.respond($scope.questionnaire).error(function(err){
+          $scope.error = err;
+        }).next(function(res){
+          $state.go('home');
+        })
       };
     }
   ])
