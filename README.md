@@ -31,7 +31,7 @@ Start the application:
 npm start &
 ```
 
-In a browser, navigate to the app: localhost:3000/#/
+In a browser, navigate to the app: [http://localhost:3000](http://localhost:3000)
 
 ### Using the app
 
@@ -43,7 +43,10 @@ admin access would be managed.
 3. Review and send the questionnaire email.
 4. Review responses to questionnaires (the link is at the bottom of the admin home screen).
 
-**As a Candidate:** Check your email; look for an email with a subject beginning with "JOBS-APP: ".  Make sure to check
+**As a Candidate:** 
+
+Route 1: Check your email; look for an email with a subject beginning with "JOBS-APP: ".  Make sure to check
 your spam folder (the sendmail implementation is not using a real SMTP server).  Copy the link into a separate incognito
  window. Answer the questions and save your responses.  When your responses are complete, submit your response.
 
+Route 2: Navigate to [http://localhost:3000](http://localhost:3000).  Enter a `questionnaire.candidate`'s email address.  If the email address corresponds to a questionnaire that has not been completed, you will be redirected to the appropriate questionnaire.
