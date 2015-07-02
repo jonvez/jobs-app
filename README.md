@@ -41,7 +41,7 @@ admin access would be managed.
 1. Create a candidate.
 2. Create some questions, and/or select from existing ones.
 3. Review and send the questionnaire email.
-4. Review responses to questionnaires (the link is at the bottom of the admin home screen).
+4. Review responses to questionnaires (the link is at the bottom of the admin home screen).  Assuming the mongorestore mentioned above works, and assuming you're registered, you can view my response [here](http://localhost:3000/#/admin/questionnaires/5594d246bb600ec2ef2c501a/response )
 
 **As a Candidate:** 
 
