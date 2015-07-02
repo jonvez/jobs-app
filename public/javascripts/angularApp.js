@@ -10,14 +10,14 @@ var app = angular.module('jobsApp', ['ui.router', 'btford.markdown'])
         auth.register($scope.user).error(function (err) {
           $scope.error = err;
         }).then(function () {
-          $state.go('adminHome');
+          $state.go('admin');
         });
       };
       $scope.logIn = function(){
         auth.logIn($scope.user).error(function(err){
           $scope.error = err;
         }).then(function(){
-          $state.go('adminHome');
+          $state.go('admin');
         });
       };
     }])
@@ -42,7 +42,10 @@ var app = angular.module('jobsApp', ['ui.router', 'btford.markdown'])
       $scope.questions = questionSvc.questions;
       $scope.question = {};
       $scope.questionnaire = questionnaire || {
-          candidate: {},
+          candidate: {
+            name: '',
+            email: ''
+          },
           questionAnswerPairs: [],
           sent: false,
           completed: false
@@ -54,19 +57,14 @@ var app = angular.module('jobsApp', ['ui.router', 'btford.markdown'])
         }
       };
       $scope.setSelectedQuestions();
-      $scope.createQuestionnaireAndCandidate = function(){
-        questionnaireSvc.saveCandidate($scope.questionnaire.candidate).error(function(err){
-          $scope.error = err;
-        }).then(function(res){
-          $scope.questionnaire.candidate = res.data;
-          $scope.questionnaire.name = 'Questionnaire for ' + $scope.questionnaire.candidate.name;
-          questionnaireSvc.saveQuestionnaire($scope.questionnaire).error(function(err){
+      $scope.createQuestionnaire = function(){
+        $scope.questionnaire.name = 'Questionnaire for ' + $scope.questionnaire.candidate.name;
+        questionnaireSvc.saveQuestionnaire($scope.questionnaire).error(function(err){
             $scope.error = err;
           }).then(function(res){
             $scope.questionnaire = res.data;
             $location.path('/admin/questionnaires/' + $scope.questionnaire._id).replace();
           });
-        });
       };
       $scope.addQuestion = function(){
         if(!$scope.question || !$scope.question.q) return;
@@ -145,9 +143,10 @@ var app = angular.module('jobsApp', ['ui.router', 'btford.markdown'])
   .controller('ResponseCtrl',[
     '$state',
     '$scope',
+    '$location',
     'responseSvc',
     'questionnaire',
-    function($state, $scope, responseSvc, questionnaire) {
+    function($state, $scope, $location, responseSvc, questionnaire) {
       if(questionnaire && questionnaire.completed) {
         $state.go('home');
       }
@@ -155,8 +154,18 @@ var app = angular.module('jobsApp', ['ui.router', 'btford.markdown'])
       $scope.saveResponse = function(){
         responseSvc.respond($scope.questionnaire).error(function(err){
           $scope.error = err;
-        }).next(function(res){
+        }).then(function(res){
           $state.go('home');
+        })
+      };
+      $scope.findQuestionnaireByEmail = function(){
+        responseSvc.findQuestionnaireByEmail($scope.email).error(function(err){
+          $scope.error = err;
+        }).then(function(res){
+          if(res.data !== null){
+            $scope.questionnaire = res.data;
+            $location.path('/questionnaires/' + $scope.questionnaire._id + '/response').replace();
+          }
         })
       };
     }
@@ -194,26 +203,10 @@ var app = angular.module('jobsApp', ['ui.router', 'btford.markdown'])
         });
       }
     };
-    o.saveCandidate = function(candidate){
-      if(!candidate._id || candidate._id === ''){
-        return $http.post('/candidates', candidate, {
-          headers: {Authorization: 'Bearer ' + auth.getToken() }
-        }).success(function(data){
-          o.candidates.push(data);
-        });
-      } else {
-        return $http.put('/candidates/' + candidate._id, candidate, {
-          headers: {Authorization: 'Bearer ' + auth.getToken() }
-        });
-      }
-    };
     o.sendQuestionnaire = function(questionnaire){
       return $http.post('/questionnaires/' + questionnaire._id + '/send', questionnaire, {
         headers: {Authorization: 'Bearer ' + auth.getToken() }
       });
-    };
-    o.findCandidateByEmail = function(email){
-      return $http.get('/candidates/locate/?email=' + email);
     };
     return o;
   }])
@@ -225,8 +218,8 @@ var app = angular.module('jobsApp', ['ui.router', 'btford.markdown'])
         return res.data;
       });
     };
-    o.findCandidateByEmail = function(email){
-      return $http.get('/candidates/locate/?email=' + email);
+    o.findQuestionnaireByEmail = function(email){
+      return $http.get('/locate/?email=' + email);
     };
     o.respond = function(questionnaire){
       return $http.put('/questionnaires/' + questionnaire._id + '/respond', questionnaire);
@@ -426,8 +419,28 @@ var app = angular.module('jobsApp', ['ui.router', 'btford.markdown'])
             }]
           }
         })
-      ;
+        .state('register', {
+          url: '/admin/register',
+          templateUrl: '/register.html',
+          controller: 'AuthCtrl',
+          onEnter: ['$state', 'auth', function($state, auth){
+            if(auth.isLoggedIn()){
+              $state.go('home');
+            }
+          }]
+        })
+        .state('login', {
+          url: '/admin/login',
+          templateUrl: '/login.html',
+          controller: 'AuthCtrl',
+          onEnter: ['$state', 'auth', function($state, auth){
+            if(auth.isLoggedIn()){
+              $state.go('home');
+            }
+          }]
+        });
 
       $urlRouterProvider
         .otherwise('home');
-  }]);
+  }])
+;

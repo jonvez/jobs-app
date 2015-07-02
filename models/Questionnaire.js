@@ -6,7 +6,11 @@ var QuestionnaireSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, ref: 'Question'},
     answer: String
   }],
-  candidate: {type: mongoose.Schema.Types.ObjectId, ref: 'Candidate'},
+  candidate: {
+	name: String,
+    email: String,
+  },
+  // candidate: {type: mongoose.Schema.Types.ObjectId, ref: 'Candidate'},
   sent: Boolean(false),
   completed: Boolean(false)
 });

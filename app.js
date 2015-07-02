@@ -7,7 +7,6 @@ var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 var passport = require('passport');
 
-require('./models/Candidate');
 require('./models/Questionnaire');
 require('./models/Question');
 require('./models/UserSchema');

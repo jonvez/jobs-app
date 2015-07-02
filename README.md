@@ -35,7 +35,7 @@ In a browser, navigate to the app: localhost:3000/#/
 
 ### Using the app
 
-**As an Admin:** Click register to set up an account.  Currently anybody can do this; in the real world, of course,
+**As an Admin:** Click 'Register' to set up an account.  Currently anybody can do this; in the real world, of course,
 admin access would be managed.
 
 1. Create a candidate.

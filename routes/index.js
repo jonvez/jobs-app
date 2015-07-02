@@ -11,7 +11,6 @@ transporter.emailFrom = 'jobs-app@gmail.com';
 //todo externalize
 var auth = jwt({secret: 'SECRET', userProperty: 'payload'});
 
-var Candidate = mongoose.model('Candidate');
 var Question = mongoose.model('Question');
 var Questionnaire = mongoose.model('Questionnaire');
 var User = mongoose.model('User');
@@ -25,7 +24,7 @@ router.get('/', function(req, res) {
 
 router.param('questionnaire', function(req, res, next, id){
   Questionnaire.findById(id)
-    .populate('candidate questionAnswerPairs.question')
+    .populate('questionAnswerPairs.question')
     .exec(function(err, questionnaire){
     if(err) { return next(err); }
     if(!questionnaire) { return next(new Error('questionnaire not found')); }
@@ -44,19 +43,9 @@ router.param('question', function(req, res, next, id){
   });
 });
 
-router.param('candidate', function(req, res, next, id){
-  var query = Candidate.findById(id);
-  query.exec(function(err, candidate){
-    if(err) { return next(err); }
-    if(!candidate) { return next(new Error('candidate not found')); }
-    req.candidate = candidate;
-    return next();
-  });
-});
-
 router.get('/questionnaires', auth, function(req, res, next) {
   Questionnaire.find()
-    .populate('candidate questionAnswerPairs questionAnswerPairs.question')
+    .populate('questionAnswerPairs.question')
     .exec(function(err, questionnaires){
       if(err){ return next(err); }
       res.json(questionnaires);
@@ -65,13 +54,6 @@ router.get('/questionnaires', auth, function(req, res, next) {
 
 router.get('/questions', auth, function(req, res, next) {
   Question.find(function(err, questions){
-    if(err){ return next(err); }
-    res.json(questions);
-  });
-});
-
-router.get('/candidates', auth, function(req, res, next) {
-  Candidate.find(function(err, questions){
     if(err){ return next(err); }
     res.json(questions);
   });
@@ -94,27 +76,15 @@ router.post('/questions', auth, function(req, res, next){
   });
 });
 
-router.post('/candidates', auth, function(req, res, next){
-  var candidate = new Candidate(req.body);
-  candidate.save(function(err, candidate){
-    if(err) { return next(err); }
-    res.json(candidate);
-  });
-});
-
 router.get('/questions/:question', auth, function(req, res){
   res.json(req.question);
 });
 
 router.get('/questionnaires/:questionnaire', function(req, res){
-  req.questionnaire.populate('candidate questionAnswerPairs questionAnswerPairs.question', function(err, questionnaire){
+  req.questionnaire.populate('questionAnswerPairs questionAnswerPairs.question', function(err, questionnaire){
     if(err){ return next(err); }
     res.json(questionnaire);
   });
-});
-
-router.get('/candidates/:candidate', auth, function(req, res){
-  res.json(req.candidates);
 });
 
 router.put('/questions/:question', auth, function(req, res, next){
@@ -130,14 +100,6 @@ router.put('/questionnaires/:questionnaire', auth, function(req, res, next){
   Questionnaire.findByIdAndUpdate(questionnaire._id, questionnaire, function(err, questionnaire){
     if(err) { return next(err); }
     res.json(questionnaire);
-  });
-});
-
-router.put('/candidates/:candidate', auth, function(req, res, next){
-  var candidate = req.body;
-  Candidate.findByIdAndUpdate(candidate._id, candidate, function(err, candidate){
-    if(err) { return next(err); }
-    res.json(candidate);
   });
 });
 
@@ -170,11 +132,11 @@ router.post('/questionnaires/:questionnaire/send', auth, function(req, res, next
 });
 
 //todo add db indexes, specifically candidate uniqueness
-router.get('/candidates/locate', function(req, res, next){
-  var email = url.parse(req.url).query.email;
-  Candidate.findOne({email: email}).populate('questionnaire', function(err, candidate){
+router.get('/locate', function(req, res){
+  var email = req.query.email;
+  Questionnaire.findOne({'candidate.email' : email}, function(err, questionnaire){
     if(err) { return err; }
-    res.json(candidate);
+    res.json(questionnaire);
   });
 });
 
